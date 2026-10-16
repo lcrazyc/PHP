@@ -1,184 +1,74 @@
 <?php
 
-namespace {
-echo "<!doctype html><html lang='uk'><head><meta charset='utf-8'><title>Породжуючі патерни PHP</title><style>body{font:16px/1.5 Arial,sans-serif;max-width:960px;margin:35px auto;padding:0 18px;color:#222}section{padding:15px 20px;margin:18px 0;border:1px solid #ddd;border-radius:10px}h2{margin-top:0;color:#184b7a}p{margin:8px 0}</style></head><body><h1>Лабораторна робота: Породжуючі патерни PHP</h1><p>Варіант 3 — автомобілі</p>";
-}
-namespace LabTask01 {
-echo "<section><h2>Завдання 1</h2>";
-class SingletonExample {
-    private static ?self $instance = null;
-    private function __construct() { echo "Singleton створено один раз.<br>"; }
-    public static function getInstance(): self { return self::$instance ??= new self(); }
-    private function __clone() {}
-    public function __wakeup(): void { throw new \Exception("Unserialize заборонено"); }
-}
-$a=SingletonExample::getInstance(); $b=SingletonExample::getInstance(); $c=SingletonExample::getInstance();
-echo "Три звернення повертають той самий об'єкт: " . (($a === $b && $b === $c) ? 'Так' : 'Ні');
-// new SingletonExample() викличе помилку: приватний конструктор.
-echo "</section>";
-}
-namespace LabTask02 {
-echo "<section><h2>Завдання 2</h2>";
-trait SingletonTrait {
-    private static ?self $instance = null;
-    private function __construct() {}
-    private function __clone() {}
-    public function __wakeup(): void { throw new \Exception("Unserialize заборонено"); }
-    public static function getInstance(): self { return self::$instance ??= new self(); }
-}
-class AppSettings { use SingletonTrait; public string $language='uk'; }
-$a=AppSettings::getInstance(); $b=AppSettings::getInstance();
-$a->language='en'; echo "Спільний стан: {$b->language}<br>Один об'єкт: ".($a===$b?'Так':'Ні');
-echo "</section>";
-}
-namespace LabTask03 {
-echo "<section><h2>Завдання 3</h2>";
-class DatabaseSingleton {
-    private static ?self $instance = null;
-    private ?\mysqli $db = null;
-    private function __construct() {
-        if (!extension_loaded('\mysqli')) { echo 'Розширення \mysqli не встановлено.<br>'; return; }
-        try {
-            mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-            $this->db = new \mysqli('localhost', 'root', '');
-            $this->db->set_charset('utf8mb4');
-            echo 'Connecting with database (один раз)<br>';
-        } catch (\Throwable $e) { echo 'Підключення недоступне: перевірте MySQL та облікові дані.<br>'; }
-    }
-    public static function getInstance(): self { return self::$instance ??= new self(); }
-    private function __clone() {}
-    public function __wakeup(): void { throw new \Exception('Unserialize заборонено'); }
-    public function getData(): array {
-        if (!$this->db) return [];
-        try {
-            $result=$this->db->query('SELECT * FROM menu');
-            return $result->fetch_all(MYSQLI_ASSOC);
-        } catch (\Throwable $e) { return []; }
-    }
-}
-$a=DatabaseSingleton::getInstance(); $b=DatabaseSingleton::getInstance(); $c=DatabaseSingleton::getInstance();
-echo 'Одна інстанція БД: '.(($a===$b && $b===$c)?'Так':'Ні');
-echo "</section>";
-}
-namespace LabTask04 {
-echo "<section><h2>Завдання 4</h2>";
-echo '<p>Singleton забезпечує одну інстанцію сервісу в межах PHP-запиту. Він корисний для централізованого доступу до конфігурації чи підключення, але глобальний стан ускладнює тестування. Між різними HTTP-запитами об’єкт не зберігається.</p>';
-echo "</section>";
-}
-namespace LabTask05 {
-echo "<section><h2>Завдання 5</h2>";
-class Automobile { public function __construct(private string $make, private string $model) {} public function getMakeAndModel(): string { return "$this->make $this->model"; } }
-class AutomobileFactory { public static function create(string $make, string $model): Automobile { return new Automobile($make,$model); } }
-$veyron=AutomobileFactory::create('Bugatti','Veyron'); echo $veyron->getMakeAndModel();
-echo "</section>";
-}
-namespace LabTask06 {
-echo "<section><h2>Завдання 6</h2>";
-class LabCar { public string $brand=''; public int $cylinders=0; public int $power=0; private string $engineNumber='';
- public function set(string $brand,int $cylinders,int $power): void {$this->brand=$brand;$this->cylinders=$cylinders;$this->power=$power;}
- public function get(string $field): mixed {return in_array($field,['brand','cylinders','power'],true)?$this->$field:null;}
- public function show(): void {echo "Марка: {$this->brand}, циліндри: {$this->cylinders}, потужність: {$this->power} к.с.<br>";}
- public function search(string $brand): bool {return $this->brand===$brand;}
- public function setEngineNumber(string $n): void {$this->engineNumber=$n;}
- public function getEngineNumber(): string {return $this->engineNumber;}
-}
-class LabCarFactory { public static function create(string $brand,int $cylinders,int $power): LabCar {$car=new LabCar();$car->set($brand,$cylinders,$power);return $car;} }
-$cars=[LabCarFactory::create('Toyota',4,150),LabCarFactory::create('BMW',6,250),LabCarFactory::create('Audi',4,190)];
-foreach($cars as $car) $car->show(); echo 'BMW знайдено: '.($cars[1]->search('BMW')?'Так':'Ні');
-echo "</section>";
-}
-namespace LabTask07 {
-echo "<section><h2>Завдання 7</h2>";
-abstract class Vehicle {public function __construct(public string $country,public string $brand,public int $year) {} abstract public function details(): string;}
-class Car extends Vehicle {public function __construct(string $country,string $brand,int $year,public string $engine,public int $power,public string $color){parent::__construct($country,$brand,$year);} public function details(): string {return "Автомобіль $this->brand ($this->country, $this->year): $this->engine, $this->power к.с., $this->color";}}
-class Bike extends Vehicle {public function __construct(string $country,string $brand,int $year,public float $weight,public string $type,public int $wheelDiameter){parent::__construct($country,$brand,$year);} public function details(): string {return "Велосипед $this->brand ($this->country, $this->year): $this->weight кг, $this->type, $this->wheelDiameter дюймів";}}
-class Motorcycle extends Vehicle {public function __construct(string $country,string $brand,int $year,public string $engine,public string $color,public string $type){parent::__construct($country,$brand,$year);} public function details(): string {return "Мотоцикл $this->brand ($this->country, $this->year): $this->engine, $this->color, $this->type";}}
-class VehicleFactory {public static function create(string $type,array $data): Vehicle {return match(strtolower($type)) {
- 'car'=>new Car(...$data), 'bike'=>new Bike(...$data), 'motorcycle'=>new Motorcycle(...$data),
- default=>throw new \InvalidArgumentException("Фабрика не може створити транспортний засіб: $type")};}}
-foreach ([['car',['Japan','Toyota',2022,'бензин',150,'синій']],['bike',['Ukraine','Ardis',2024,13.5,'гірський',27]],['motorcycle',['Japan','Honda',2023,'600 см³','червоний','спорт']]] as [$type,$args]) echo VehicleFactory::create($type,$args)->details().'<br>';
-try {VehicleFactory::create('plane',[]);} catch(\InvalidArgumentException $e) {echo htmlspecialchars($e->getMessage());}
-echo "</section>";
-}
-namespace LabTask08 {
-echo "<section><h2>Завдання 8</h2>";
-echo '<p>Factory централізує створення об’єктів, прибирає дублювання коду та дозволяє перевіряти допустимі типи. Для вебсистем це полегшує розширення каталогу та зміну реалізації без переписування клієнтського коду.</p>';
-echo "</section>";
-}
-namespace LabTask09 {
-echo "<section><h2>Завдання 9</h2>";
-interface Product {public function getName(): string;}
-interface Factory {public function getProduct(): Product;}
-class FirstProduct implements Product {public function getName(): string{return 'The first product';}}
-class SecondProduct implements Product {public function getName(): string{return 'Second product';}}
-class FirstFactory implements Factory {public function getProduct(): Product{return new FirstProduct();}}
-class SecondFactory implements Factory {public function getProduct(): Product{return new SecondProduct();}}
-foreach([new FirstFactory(),new SecondFactory()] as $factory) echo $factory->getProduct()->getName().'<br>';
-echo "</section>";
-}
-namespace LabTask10 {
-echo "<section><h2>Завдання 10</h2>";
-interface CarProduct {public function set(string $brand,int $cylinders,int $power): void;public function get(string $field): mixed;public function show(): void;public function search(string $brand): bool;}
-class FactoryCar implements CarProduct {public string $brand='';public int $cylinders=0;public int $power=0;private string $engineNumber='';
- public function set(string $brand,int $cylinders,int $power): void {$this->brand=$brand;$this->cylinders=$cylinders;$this->power=$power;}
- public function get(string $field): mixed {return in_array($field,['brand','cylinders','power'],true)?$this->$field:null;}
- public function show(): void {echo "Автомобіль $this->brand: $this->cylinders циліндри, $this->power к.с.<br>";}
- public function search(string $brand): bool {return $this->brand===$brand;}
-}
-abstract class CarCreator {abstract public function create(): CarProduct;}
-class ToyotaCreator extends CarCreator {public function create(): CarProduct {$c=new FactoryCar();$c->set('Toyota',4,150);return $c;}}
-class BMWCreator extends CarCreator {public function create(): CarProduct {$c=new FactoryCar();$c->set('BMW',6,250);return $c;}}
-foreach([new ToyotaCreator(),new BMWCreator()] as $creator) $creator->create()->show();
-echo "</section>";
-}
-namespace LabTask11 {
-echo "<section><h2>Завдання 11</h2>";
-interface DemoProduct {public function getName(): string;}
-abstract class DemoAbstractFactory {abstract public function getProduct(): DemoProduct;public static function getFactory(int $choice): self {return match($choice){1=>new DemoFirstFactory(),2=>new DemoSecondFactory(),default=>throw new \InvalidArgumentException('Bad config')};}}
-class DemoFirstProduct implements DemoProduct {public function getName(): string {return 'The product from the first factory';}}
-class DemoSecondProduct implements DemoProduct {public function getName(): string {return 'The product from second factory';}}
-class DemoFirstFactory extends DemoAbstractFactory {public function getProduct(): DemoProduct {return new DemoFirstProduct();}}
-class DemoSecondFactory extends DemoAbstractFactory {public function getProduct(): DemoProduct {return new DemoSecondProduct();}}
-echo DemoAbstractFactory::getFactory(1)->getProduct()->getName().'<br>';echo DemoAbstractFactory::getFactory(2)->getProduct()->getName();
-echo "</section>";
-}
-namespace LabTask12 {
-echo "<section><h2>Завдання 12</h2>";
-abstract class ParkVehicle {public function __construct(public string $brand,public string $origin) {} abstract public function category(): string; public function label(): string {return $this->category().': '.$this->brand.' ('.$this->origin.')';}}
-abstract class ParkCar extends ParkVehicle {public function category(): string{return 'Легкова машина';}}
-abstract class ParkTruck extends ParkVehicle {public function category(): string{return 'Вантажівка';}}
-abstract class ParkBus extends ParkVehicle {public function category(): string{return 'Автобус';}}
-class UaCar extends ParkCar {} class UaTruck extends ParkTruck {} class UaBus extends ParkBus {}
-class ForeignCar extends ParkCar {} class ForeignTruck extends ParkTruck {} class ForeignBus extends ParkBus {}
-interface ParkFactory {public function createCar(): ParkCar;public function createTruck(): ParkTruck;public function createBus(): ParkBus;}
-class UaFactory implements ParkFactory {public function createCar(): ParkCar{return new UaCar('ЗАЗ','Україна');}public function createTruck(): ParkTruck{return new UaTruck('КрАЗ','Україна');}public function createBus(): ParkBus{return new UaBus('Еталон','Україна');}}
-class ForeignFactory implements ParkFactory {public function createCar(): ParkCar{return new ForeignCar('Toyota','Японія');}public function createTruck(): ParkTruck{return new ForeignTruck('Volvo','Швеція');}public function createBus(): ParkBus{return new ForeignBus('Mercedes-Benz','Німеччина');}}
-function buildPark(array $cfg): array {$factory=match($cfg['factory']??''){ 'ua'=>new UaFactory(),'foreign'=>new ForeignFactory(),default=>throw new \InvalidArgumentException('Невідома фабрика')};$park=[];foreach(['carNum'=>'createCar','truckNum'=>'createTruck','busNum'=>'createBus'] as $key=>$method){$count=max(0,(int)($cfg[$key]??0));if($count>100)throw new \InvalidArgumentException('Завелика кількість');for($i=0;$i<$count;$i++)$park[]=$factory->$method();}return $park;}
-foreach(['ua','foreign'] as $kind){$cfg=parse_ini_string($kind === 'ua' ? "factory=ua\ncarNum=10\ntruckNum=2\nbusNum=4" : "factory=foreign\ncarNum=3\ntruckNum=2\nbusNum=1");echo '<h3>Фабрика: '.htmlspecialchars($kind).'</h3>';foreach(buildPark($cfg) as $vehicle) echo htmlspecialchars($vehicle->label()).'<br>';}
-echo "</section>";
-}
-namespace LabTask13 {
-echo "<section><h2>Завдання 13</h2>";
-trait CarFieldsTrait {public string $brand='';public int $cylinders=0;public int $power=0;private string $engineNumber='';
- public function set(string $brand,int $cylinders,int $power): void {$this->brand=$brand;$this->cylinders=$cylinders;$this->power=$power;}
- public function get(string $field): mixed {return in_array($field,['brand','cylinders','power'],true)?$this->$field:null;}
- public function setEngineNumber(string $n): void {$this->engineNumber=$n;}
- public function getEngineNumber(): string{return $this->engineNumber;}}
-trait CarActionsTrait {public function show(): void {echo "Марка: {$this->brand}, циліндри: {$this->cylinders}, потужність: {$this->power} к.с.<br>";}
- public function search(string $brand): bool{return $this->brand===$brand;}}
-interface DomainCar {public function set(string $brand,int $cylinders,int $power): void;public function show(): void;}
-class DomesticDomainCar implements DomainCar {use CarFieldsTrait,CarActionsTrait;}
-class ForeignDomainCar implements DomainCar {use CarFieldsTrait,CarActionsTrait;}
-interface DomainFactory {public function createCar(string $brand,int $cylinders,int $power): DomainCar;}
-class DomesticDomainFactory implements DomainFactory {public function createCar(string $brand,int $cylinders,int $power): DomainCar {$c=new DomesticDomainCar();$c->set($brand,$cylinders,$power);return $c;}}
-class ForeignDomainFactory implements DomainFactory {public function createCar(string $brand,int $cylinders,int $power): DomainCar {$c=new ForeignDomainCar();$c->set($brand,$cylinders,$power);return $c;}}
-$ua=(new DomesticDomainFactory())->createCar('ЗАЗ',4,100);$foreign=(new ForeignDomainFactory())->createCar('Toyota',4,150);
-$ua->show();$foreign->show();echo 'Пошук Toyota: '.($foreign->search('Toyota')?'Знайдено':'Не знайдено');
-echo "</section>";
-}
-namespace LabTask14 {
-echo "<section><h2>Завдання 14</h2>";
-echo '<p>Factory Method делегує створення конкретного продукту підкласам фабрики. Abstract Factory забезпечує створення узгоджених сімейств продуктів (наприклад, вітчизняних і зарубіжних транспортних засобів). Обидва патерни знижують залежність вебсистеми від конкретних класів, хоча додають більше абстракцій.</p>';
-echo "</section>";
-}
-namespace { echo "</body></html>"; }
+header('Content-Type: text/html; charset=utf-8');
+echo '<!doctype html><html lang="uk"><meta charset="utf-8"><title>Породжуючі патерни PHP</title><style>body{font:16px Arial;max-width:950px;margin:30px auto;line-height:1.6}section{border:1px solid #ddd;padding:15px;margin:15px 0}h2{color:#18527d}</style><h1>Породжуючі патерни PHP — варіант 3</h1>';
+function titleTask($n,$name=''){echo '<section><h2>Завдання '.$n.' '.htmlspecialchars($name,ENT_QUOTES,'UTF-8').'</h2>';}
+function endTask(){echo '</section>';}
+// 1. Singleton
+class SingletonDemo {private static $instance=null;private function __construct(){echo 'Об’єкт Singleton створено.<br>';}private function __clone(){}public function __wakeup(){throw new Exception('Заборонено');}public static function getInstance(){if(self::$instance===null)self::$instance=new self();return self::$instance;}}
+titleTask(1,'Singleton');$s1=SingletonDemo::getInstance();$s2=SingletonDemo::getInstance();$s3=SingletonDemo::getInstance();echo 'Усі три посилання на один об’єкт: '.(($s1===$s2&&$s2===$s3)?'Так':'Ні');endTask();
+// 2. Singleton trait
+trait SingletonTrait {private static $instance=null;private function __construct(){}private function __clone(){}public function __wakeup(){throw new Exception('Заборонено');}public static function getInstance(){if(self::$instance===null)self::$instance=new self();return self::$instance;}}
+class AppSettings {use SingletonTrait;public $language='uk';}
+titleTask(2,'Singleton через трейт');$a=AppSettings::getInstance();$b=AppSettings::getInstance();$a->language='en';echo 'Один об’єкт: '.($a===$b?'Так':'Ні').'; мова: '.$b->language;endTask();
+// 3. Singleton database
+class SingletonDB {private static $instance=null;private $connection=null;private function __construct(){if(class_exists('mysqli')){$this->connection=@new mysqli('localhost','root','');if($this->connection->connect_errno){echo 'MySQL недоступний (демонстрація Singleton працює без бази).<br>';$this->connection=null;}else{echo 'Підключення до MySQL створено один раз.<br>';$this->connection->set_charset('utf8');}}else echo 'Розширення mysqli відсутнє.<br>';}private function __clone(){}public function __wakeup(){throw new Exception('Заборонено');}public static function getInstance(){if(self::$instance===null)self::$instance=new self();return self::$instance;}public function getData(){if(!$this->connection)return array();$r=$this->connection->query('SELECT * FROM menu');if(!$r)return array();$rows=array();while($row=$r->fetch_assoc())$rows[]=$row;return $rows;}}
+titleTask(3,'Singleton для бази даних');$d1=SingletonDB::getInstance();$d2=SingletonDB::getInstance();$d3=SingletonDB::getInstance();echo 'Єдиний екземпляр підключення: '.(($d1===$d2&&$d2===$d3)?'Так':'Ні');endTask();
+titleTask(4,'Висновок Singleton');echo 'Singleton забезпечує єдиний екземпляр класу в межах одного виконання PHP-скрипту та спільну точку доступу до нього. Це корисно для керування налаштуваннями або підключенням до БД, але не слід зловживати глобальним станом.';endTask();
+// 5. Factory
+class Automobile {private $make;private $model;public function __construct($make,$model){$this->make=$make;$this->model=$model;}public function getMakeAndModel(){return $this->make.' '.$this->model;}}
+class AutomobileFactory {public static function create($make,$model){return new Automobile($make,$model);}}
+titleTask(5,'Factory');echo AutomobileFactory::create('Bugatti','Veyron')->getMakeAndModel();endTask();
+// 6. Factory for lab 1 domain
+class LabCar {public $brand;public $cylinders;public $power;private $engineNumber;public function set($brand,$cylinders,$power){$this->brand=$brand;$this->cylinders=$cylinders;$this->power=$power;}public function get($field){if(in_array($field,array('brand','cylinders','power')))return $this->$field;return null;}public function show(){echo 'Марка: '.$this->brand.', циліндри: '.$this->cylinders.', потужність: '.$this->power.' к.с.<br>';}public function search($brand){return $this->brand===$brand;}public function setEngineNumber($n){$this->engineNumber=$n;}public function getEngineNumber(){return $this->engineNumber;}}
+class LabCarFactory {public static function create($brand,$cylinders,$power){$c=new LabCar();$c->set($brand,$cylinders,$power);return $c;}}
+titleTask(6,'Factory для автомобілів лабораторної №1');$cars=array(LabCarFactory::create('Toyota',4,150),LabCarFactory::create('BMW',6,250),LabCarFactory::create('Audi',4,190));foreach($cars as $car)$car->show();echo 'Пошук BMW: '.($cars[1]->search('BMW')?'Знайдено':'Не знайдено');endTask();
+// 7. Vehicle factory
+abstract class Vehicle {public $country;public $brand;public $year;public function __construct($country,$brand,$year){$this->country=$country;$this->brand=$brand;$this->year=$year;}abstract public function details();}
+class CarVehicle extends Vehicle {public $engine;public $power;public $color;public function __construct($country,$brand,$year,$engine,$power,$color){parent::__construct($country,$brand,$year);$this->engine=$engine;$this->power=$power;$this->color=$color;}public function details(){return 'Автомобіль '.$this->brand.': '.$this->engine.', '.$this->power.' к.с., '.$this->color;}}
+class BikeVehicle extends Vehicle {public $weight;public $type;public $wheelDiameter;public function __construct($country,$brand,$year,$weight,$type,$wheelDiameter){parent::__construct($country,$brand,$year);$this->weight=$weight;$this->type=$type;$this->wheelDiameter=$wheelDiameter;}public function details(){return 'Велосипед '.$this->brand.': '.$this->weight.' кг, '.$this->type.', колесо '.$this->wheelDiameter.' дюймів';}}
+class MotorcycleVehicle extends Vehicle {public $engine;public $color;public $type;public function __construct($country,$brand,$year,$engine,$color,$type){parent::__construct($country,$brand,$year);$this->engine=$engine;$this->color=$color;$this->type=$type;}public function details(){return 'Мотоцикл '.$this->brand.': '.$this->engine.', '.$this->color.', '.$this->type;}}
+class VehicleFactory {public static function create($type,$data){switch(strtolower($type)){case 'car':return new CarVehicle($data[0],$data[1],$data[2],$data[3],$data[4],$data[5]);case 'bike':return new BikeVehicle($data[0],$data[1],$data[2],$data[3],$data[4],$data[5]);case 'motorcycle':return new MotorcycleVehicle($data[0],$data[1],$data[2],$data[3],$data[4],$data[5]);default:throw new InvalidArgumentException('Фабрика не може створити цей транспортний засіб');}}}
+titleTask(7,'Фабрика транспортних засобів');foreach(array(VehicleFactory::create('car',array('Японія','Toyota',2020,'бензин',150,'чорний')),VehicleFactory::create('bike',array('Україна','Ardis',2023,14,'гірський',29)),VehicleFactory::create('motorcycle',array('Японія','Honda',2022,'600 см3','червоний','спортивний'))) as $v)echo htmlspecialchars($v->details(),ENT_QUOTES,'UTF-8').'<br>';try{VehicleFactory::create('plane',array());}catch(Exception $e){echo $e->getMessage();}endTask();
+titleTask(8,'Висновок Factory');echo 'Factory централізує створення об’єктів і відокремлює клієнтський код від конкретних конструкторів.';endTask();
+// 9. Factory Method
+interface Product9 {public function getName();}interface Factory9 {public function getProduct();}
+class FirstProduct9 implements Product9 {public function getName(){return 'The first product';}}
+class SecondProduct9 implements Product9 {public function getName(){return 'Second product';}}
+class FirstFactory9 implements Factory9 {public function getProduct(){return new FirstProduct9();}}
+class SecondFactory9 implements Factory9 {public function getProduct(){return new SecondProduct9();}}
+titleTask(9,'Factory Method');$f1=new FirstFactory9();$f2=new SecondFactory9();echo $f1->getProduct()->getName().'<br>'.$f2->getProduct()->getName();endTask();
+// 10. Factory Method lab 1
+abstract class CarCreator10 {abstract public function create();}
+class ToyotaCreator10 extends CarCreator10 {public function create(){return LabCarFactory::create('Toyota',4,150);}}
+class BMWCreator10 extends CarCreator10 {public function create(){return LabCarFactory::create('BMW',6,250);}}
+titleTask(10,'Factory Method для предметної області лабораторної №1');$creators=array(new ToyotaCreator10(),new BMWCreator10());foreach($creators as $creator)$creator->create()->show();endTask();
+// 11. Abstract Factory
+interface Product11 {public function getName();}abstract class AbstractFactory11 {abstract public function getProduct();public static function getFactory($choice){if($choice==1)return new FirstFactory11();if($choice==2)return new SecondFactory11();throw new InvalidArgumentException('Bad config');}}
+class FirstProduct11 implements Product11 {public function getName(){return 'The product from the first factory';}}
+class SecondProduct11 implements Product11 {public function getName(){return 'The product from second factory';}}
+class FirstFactory11 extends AbstractFactory11 {public function getProduct(){return new FirstProduct11();}}
+class SecondFactory11 extends AbstractFactory11 {public function getProduct(){return new SecondProduct11();}}
+titleTask(11,'Abstract Factory');echo AbstractFactory11::getFactory(1)->getProduct()->getName().'<br>'.AbstractFactory11::getFactory(2)->getProduct()->getName();endTask();
+// 12. Abstract Factory car park
+abstract class ParkVehicle {protected $brand;protected $origin;public function __construct($brand,$origin){$this->brand=$brand;$this->origin=$origin;}abstract public function category();public function label(){return $this->category().': '.$this->brand.' ('.$this->origin.')';}}
+abstract class ParkCar extends ParkVehicle {public function category(){return 'Легкова машина';}}
+abstract class ParkTruck extends ParkVehicle {public function category(){return 'Вантажівка';}}
+abstract class ParkBus extends ParkVehicle {public function category(){return 'Автобус';}}
+class UaCar extends ParkCar {}class UaTruck extends ParkTruck {}class UaBus extends ParkBus {}class ForeignCar extends ParkCar {}class ForeignTruck extends ParkTruck {}class ForeignBus extends ParkBus {}
+interface ParkFactory {public function createCar();public function createTruck();public function createBus();}
+class UaParkFactory implements ParkFactory {public function createCar(){return new UaCar('ЗАЗ','Україна');}public function createTruck(){return new UaTruck('КрАЗ','Україна');}public function createBus(){return new UaBus('Еталон','Україна');}}
+class ForeignParkFactory implements ParkFactory {public function createCar(){return new ForeignCar('Toyota','Японія');}public function createTruck(){return new ForeignTruck('Volvo','Швеція');}public function createBus(){return new ForeignBus('Mercedes-Benz','Німеччина');}}
+function buildPark($config){$factory=$config['factory']==='ua'?new UaParkFactory():new ForeignParkFactory();$result=array();foreach(array('carNum'=>'createCar','truckNum'=>'createTruck','busNum'=>'createBus') as $key=>$method){$n=min(100,max(0,(int)$config[$key]));for($i=0;$i<$n;$i++)$result[]=$factory->$method();}return $result;}
+titleTask(12,'Автопарк: українська та закордонна фабрики');foreach(array('ua','foreign') as $kind){$config=parse_ini_string("factory=$kind\ncarNum=10\ntruckNum=2\nbusNum=4");echo '<h3>Фабрика: '.$kind.'</h3>';foreach(buildPark($config) as $v)echo htmlspecialchars($v->label(),ENT_QUOTES,'UTF-8').'<br>';}endTask();
+// 13. Abstract Factory with traits
+trait CarFieldsTrait {public $brand;public $cylinders;public $power;private $engineNumber;public function set($brand,$cylinders,$power){$this->brand=$brand;$this->cylinders=$cylinders;$this->power=$power;}public function get($field){return in_array($field,array('brand','cylinders','power'))?$this->$field:null;}public function setEngineNumber($n){$this->engineNumber=$n;}public function getEngineNumber(){return $this->engineNumber;}}
+trait CarActionsTrait {public function show(){echo 'Марка: '.$this->brand.', циліндри: '.$this->cylinders.', потужність: '.$this->power.' к.с.<br>';}public function search($brand){return $this->brand===$brand;}}
+abstract class DomainCar13 {use CarFieldsTrait,CarActionsTrait;abstract public function origin();}
+class DomesticCar13 extends DomainCar13 {public function origin(){return 'Вітчизняний';}}
+class ForeignCar13 extends DomainCar13 {public function origin(){return 'Зарубіжний';}}
+interface DomainFactory13 {public function createCar($brand,$cylinders,$power);}
+class DomesticFactory13 implements DomainFactory13 {public function createCar($brand,$cylinders,$power){$c=new DomesticCar13();$c->set($brand,$cylinders,$power);return $c;}}
+class ForeignFactory13 implements DomainFactory13 {public function createCar($brand,$cylinders,$power){$c=new ForeignCar13();$c->set($brand,$cylinders,$power);return $c;}}
+titleTask(13,'Abstract Factory + трейти для автомобілів лабораторної №1');$u=(new DomesticFactory13())->createCar('ЗАЗ',4,100);$f=(new ForeignFactory13())->createCar('Toyota',4,150);echo $u->origin().': ';$u->show();echo $f->origin().': ';$f->show();echo 'Пошук Toyota: '.($f->search('Toyota')?'Знайдено':'Не знайдено');endTask();
+titleTask(14,'Загальний висновок');echo 'Factory Method дозволяє підкласам визначати конкретний продукт, а Abstract Factory створює узгоджені сімейства об’єктів. Обидва патерни спрощують розвиток веб-орієнтованих систем, знижуючи залежність коду від конкретних реалізацій.';endTask();echo '</html>';
